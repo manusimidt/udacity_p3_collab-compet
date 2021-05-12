@@ -71,6 +71,8 @@ class AgentDuo:
         self.agent1 = agent1
         self.agent2 = agent2
 
+        self.memory = ReplayBuffer(agent1.action_size, buffer_size, batch_size)
+
 
 class ReplayBuffer:
     """Fixed-size buffer to store experience tuples."""
