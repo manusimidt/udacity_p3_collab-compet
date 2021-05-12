@@ -46,13 +46,15 @@ class Agent:
         :param batch_size: size of learning batch (mini-batch)
         """
         self.tau = tau
+        self.action_size = action_size
+        self.state_size = state_size
         pass
 
     def step(self, experience: tuple):
         pass
 
     def act(self, state, add_noise: bool = True):
-        pass
+        return np.clip(np.random.randn(2, self.action_size), 1, -1)
 
     def learn(self, experiences):
         pass
@@ -60,6 +62,14 @@ class Agent:
     def soft_update(self, local_model, target_model):
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(self.tau * local_param.data + (1.0 - self.tau) * target_param.data)
+
+
+class AgentDuo:
+    """ This class stores the two agents and their common replay buffer """
+
+    def __init__(self, agent1: Agent, agent2: Agent, buffer_size: int, batch_size: int):
+        self.agent1 = agent1
+        self.agent2 = agent2
 
 
 class ReplayBuffer:

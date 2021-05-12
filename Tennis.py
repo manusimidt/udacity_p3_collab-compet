@@ -1,47 +1,73 @@
 from unityagents import UnityEnvironment
 import numpy as np
+import pandas as pd
 
-env = UnityEnvironment(file_name="Tennis_Windows_x86_64/Tennis.exe")
+import matplotlib.pyplot as plt
+from Agent import Agent, AgentDuo
 
-# get the default brain
-brain_name = env.brain_names[0]
-brain = env.brains[brain_name]
 
-# reset the environment
-env_info = env.reset(train_mode=True)[brain_name]
+def watch_agents_from_pth_file(_env, _brain_name, _agent_duo, param, param1):
+    pass
 
-# number of agents
-num_agents = len(env_info.agents)
-print('Number of agents:', num_agents)
 
-# size of each action
-action_size = brain.vector_action_space_size
-print('Size of each action:', action_size)
+def train_agents(_env, _brain_name, _agent_duo, n_episodes, max_steps):
+    pass
 
-# examine the state space
-states = env_info.vector_observations
-state_size = states.shape[1]
-print('There are {} agents. Each observes a state with length: {}'.format(states.shape[0], state_size))
-print('The state for the first agent looks like:', states[0])
 
-for i in range(1, 6):  # play game for 5 episodes
-    env_info = env.reset(train_mode=False)[brain_name]  # reset the environment
-    states = env_info.vector_observations  # get the current state (for each agent)
-    scores = np.zeros(num_agents)  # initialize the score (for each agent)
+def watch_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo):
+    """ Shows the agent simulation """
+    env_info = env.reset(train_mode=False)[brain_name]
+    # get the current state for each agent
+    states = env_info.vector_observations
+    # initialize the scores for the two agents
+    scores = np.zeros(2)
+
     while True:
-        actions = np.random.randn(num_agents, action_size)  # select an action (for each agent)
-        actions = np.clip(actions, -1, 1)  # all actions between -1 and 1
-        env_info = env.step(actions)[brain_name]  # send all actions to tne environment
-        next_states = env_info.vector_observations  # get next state (for each agent)
-        rewards = env_info.rewards  # get reward (for each agent)
-        dones = env_info.local_done  # see if episode finished
-        scores += env_info.rewards  # update the score (for each agent)
-        states = next_states  # roll over states to next time step
-        if np.any(dones):  # exit loop if episode finished
+        action1 = agent_duo.agent1.act(states)
+        action2 = agent_duo.agent2.act(states)
+        # send both actions to the environment
+        env_info = env.step(action1, action2)[brain_name]
+        # get the next state (for each agent)
+        next_states = env_info.vector_observations
+        rewards = env_info.rewards
+        dones = env_info.local_done
+        scores += rewards
+        states = next_states
+        if np.any(dones):
             break
-    print('Score (max over agents) from episode {}: {}'.format(i, np.max(scores)))
+    print(f"Scores: Agent 1: {scores[0]}, Agent 2: {scores[1]}")
 
-env.close()
+
+def plot_scores(scores: [int], sma_window: int = 50) -> None:
+    """
+    Plots a line plot of the scores.
+    The function expects the score of the first episode at scores[0] and the last episode at scores[-1]
+    :param scores:
+    :param sma_window: Simple Moving Average rolling window
+    :return:
+    """
+    # calculate moving average of the scores
+    series: pd.Series = pd.Series(scores)
+    window = series.rolling(window=sma_window)
+    scores_sma: pd.Series = window.mean()
+
+    # plot the scores
+    fig = plt.figure(figsize=(12, 5))
+
+    plot1 = fig.add_subplot(121)
+    plot1.plot(np.arange(len(scores)), scores)
+    plot1.set_ylabel('Score')
+    plot1.set_xlabel('Episode #')
+    plot1.set_title("Raw scores")
+
+    plot2 = fig.add_subplot(122)
+    plot2.plot(np.arange(len(scores_sma)), scores_sma)
+    plot2.set_ylabel('Score')
+    plot2.set_xlabel('Episode #')
+    plot2.set_title(f"Moving Average(window={sma_window})")
+
+    plt.show()
+
 
 if __name__ == '__main__':
     # initialize the environment
@@ -53,3 +79,18 @@ if __name__ == '__main__':
     _agent_count: int = 2
     _action_size: int = 2
     _state_size: int = 24
+
+    _agent1 = Agent(_state_size, _action_size, gamma=0.99, lr_actor=0.0002, lr_critic=0.0003, tau=0.002, weight_decay=0.0001)
+    _agent2 = Agent(_state_size, _action_size, gamma=0.99, lr_actor=0.0002, lr_critic=0.0003, tau=0.002, weight_decay=0.0001)
+
+    _agent_duo = AgentDuo(_agent1, _agent2, buffer_size=1000000, batch_size=128)
+
+    watch_only = False
+    if watch_only:
+        watch_agents_from_pth_file(_env, _brain_name, _agent_duo, './checkpoint-actor.pth', './checkpoint-critic.pth')
+    else:
+        # scores = train_agents(_env, _brain_name, _agent_duo, n_episodes=500, max_steps=1500)
+        watch_agents(_env, _brain_name, _agent_duo)
+        # plot_scores(scores=scores, sma_window=10)
+
+    _env.close()
