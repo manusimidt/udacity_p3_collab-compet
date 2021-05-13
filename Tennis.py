@@ -1,15 +1,26 @@
 from collections import deque
 
+import torch
+from torch import optim
 from unityagents import UnityEnvironment
 import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
 from Agent import Agent, AgentDuo
+from networks import ActorNetwork
 
 
-def watch_agents_from_pth_file(_env, _brain_name, _agent_duo, param, param1):
-    pass
+def watch_agents_from_pth_file(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo, weight_folder_path: str):
+    agent_duo.agent1.actor_local.load_state_dict(torch.load(f"{weight_folder_path}/checkpoint-actor1.pth"))
+    agent_duo.agent1.critic_local.load_state_dict(torch.load(f"{weight_folder_path}/checkpoint-critic1.pth"))
+    agent_duo.agent2.actor_local.load_state_dict(torch.load(f"{weight_folder_path}/checkpoint-actor2.pth"))
+    agent_duo.agent2.critic_local.load_state_dict(torch.load(f"{weight_folder_path}/checkpoint-critic2.pth"))
+    agent_duo.agent1.actor_local.eval()
+    agent_duo.agent1.critic_local.eval()
+    agent_duo.agent2.actor_local.eval()
+    agent_duo.agent2.critic_local.eval()
+    watch_agents(env, brain_name, agent_duo)
 
 
 def train_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo, n_episodes: int):
@@ -65,14 +76,16 @@ def train_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo, n_
         total_scores["agent1"].append(scores[0])
         total_scores["agent2"].append(scores[1])
 
-        if i_episode % 50 == 0:
+        if i_episode % 100 == 0:
             print(f"""Episode {i_episode}: Average Score: {np.mean(scores_window):.2f}""")
 
         if np.mean(scores_window) >= 0.5:
             print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode,
                                                                                          np.mean(scores_window)))
-            # torch.save(agent.actor_local.state_dict(), 'checkpoint-actor.pth')
-            # torch.save(agent.critic_local.state_dict(), 'checkpoint-critic.pth')
+            torch.save(agent_duo.agent1.actor_local.state_dict(), '/weights/checkpoint-actor1.pth')
+            torch.save(agent_duo.agent1.critic_local.state_dict(), '/weights/checkpoint-critic1.pth')
+            torch.save(agent_duo.agent2.actor_local.state_dict(), '/weights/checkpoint-actor2.pth')
+            torch.save(agent_duo.agent2.critic_local.state_dict(), '/weights/checkpoint-critic2.pth')
             break
 
     return total_scores
@@ -113,24 +126,27 @@ def plot_scores(scores: dict, sma_window: int = 50) -> None:
     # calculate moving average of the scores
     agent1_series: pd.Series = pd.Series(scores['agent1'])
     agent2_series: pd.Series = pd.Series(scores['agent2'])
+    max_score_series: pd.Series = pd.Series(np.maximum(scores['agent1'], scores['agent1']))
     window1 = agent1_series.rolling(window=sma_window)
     window2 = agent2_series.rolling(window=sma_window)
+    window3 = max_score_series.rolling(window=sma_window)
     agent1_scores_sma: pd.Series = window1.mean()
     agent2_scores_sma: pd.Series = window2.mean()
+    max_score_sma: pd.Series = window3.mean()
 
     # plot the scores
     fig = plt.figure(figsize=(12, 5))
 
     plot1 = fig.add_subplot(121)
-    plot1.plot(np.arange(len(scores['agent1'])), scores['agent1'], c='blue', label='Agent 1')
-    plot1.plot(np.arange(len(scores['agent2'])), scores['agent2'], c='red', label='Agent 2')
+    plot1.plot(np.arange(len(scores['agent1'])), np.maximum(scores['agent1'], scores['agent1']))
     plot1.set_ylabel('Score')
     plot1.set_xlabel('Episode #')
     plot1.set_title("Raw scores")
 
     plot2 = fig.add_subplot(122)
-    plot2.plot(np.arange(len(agent1_scores_sma)), agent1_scores_sma, c='blue')
-    plot2.plot(np.arange(len(agent2_scores_sma)), agent2_scores_sma, c='red')
+    plot2.plot(np.arange(len(agent1_scores_sma)), agent1_scores_sma, c='blue', label='agent1')
+    plot2.plot(np.arange(len(agent2_scores_sma)), agent2_scores_sma, c='red', label='agent2')
+    plot2.plot(np.arange(len(max_score_sma)), max_score_sma, c='black', label='score')
     plot2.set_ylabel('Score')
     plot2.set_xlabel('Episode #')
     plot2.set_title(f"Moving Average(window={sma_window})")
@@ -151,19 +167,33 @@ if __name__ == '__main__':
     _action_size: int = 4
     _state_size: int = 24
 
-    _agent1 = Agent(_state_size, _action_size, gamma=0.99, lr_actor=0.0003, lr_critic=0.0004, tau=0.002,
-                    weight_decay=0.0001)
-    _agent2 = Agent(_state_size, _action_size, gamma=0.99, lr_actor=0.0003, lr_critic=0.0004, tau=0.002,
-                    weight_decay=0.0001)
+    _agent1 = Agent(_state_size, _action_size, gamma=0.90, lr_actor=0.0003, lr_critic=0.0004, tau=0.002,
+                    weight_decay=0.)
+    _agent2 = Agent(_state_size, _action_size, gamma=0.90, lr_actor=0.0003, lr_critic=0.0004, tau=0.002,
+                    weight_decay=0.)
+
+    # _actor_local = ActorNetwork(_state_size, _action_size)
+    # _actor_target = ActorNetwork(_state_size, _action_size)
+    # _actor_optimizer = optim.Adam(_actor_local.parameters(), lr=0.0002)
+    # _agent1.actor_target = _actor_target
+    # _agent2.actor_target = _actor_target
+    # _agent1.actor_local = _actor_local
+    # _agent2.actor_local = _actor_local
+
+    # _agent1.actor_optimizer = _actor_optimizer
+    # _agent2.actor_optimizer = _actor_optimizer
+
+    # _agent1.hard_update(_actor_local, _actor_target)
+    # _agent2.hard_update(_actor_local, _actor_target)
 
     _agent_duo = AgentDuo(_agent1, _agent2, buffer_size=1000000, batch_size=128)
 
     watch_only = False
     if watch_only:
-        watch_agents_from_pth_file(_env, _brain_name, _agent_duo, './checkpoint-actor.pth', './checkpoint-critic.pth')
+        watch_agents_from_pth_file(_env, _brain_name, _agent_duo, './weights')
     else:
-        _scores = train_agents(_env, _brain_name, _agent_duo, n_episodes=2000)
-        watch_agents(_env, _brain_name, _agent_duo)
+        _scores = train_agents(_env, _brain_name, _agent_duo, n_episodes=3000)
         plot_scores(scores=_scores, sma_window=100)
+        watch_agents(_env, _brain_name, _agent_duo)
 
     _env.close()
