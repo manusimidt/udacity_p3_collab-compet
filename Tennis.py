@@ -126,7 +126,7 @@ def plot_scores(scores: dict, sma_window: int = 50) -> None:
     # calculate moving average of the scores
     agent1_series: pd.Series = pd.Series(scores['agent1'])
     agent2_series: pd.Series = pd.Series(scores['agent2'])
-    max_score_series: pd.Series = pd.Series(np.maximum(scores['agent1'], scores['agent1']))
+    max_score_series: pd.Series = pd.Series(np.maximum(scores['agent1'], scores['agent2']))
     window1 = agent1_series.rolling(window=sma_window)
     window2 = agent2_series.rolling(window=sma_window)
     window3 = max_score_series.rolling(window=sma_window)
@@ -138,7 +138,7 @@ def plot_scores(scores: dict, sma_window: int = 50) -> None:
     fig = plt.figure(figsize=(12, 5))
 
     plot1 = fig.add_subplot(121)
-    plot1.plot(np.arange(len(scores['agent1'])), np.maximum(scores['agent1'], scores['agent1']))
+    plot1.plot(np.arange(len(scores['agent1'])), np.maximum(scores['agent1'], scores['agent2']))
     plot1.set_ylabel('Score')
     plot1.set_xlabel('Episode #')
     plot1.set_title("Raw scores")
@@ -167,32 +167,32 @@ if __name__ == '__main__':
     _action_size: int = 4
     _state_size: int = 24
 
-    _agent1 = Agent(_state_size, _action_size, gamma=0.90, lr_actor=0.0003, lr_critic=0.0004, tau=0.002,
-                    weight_decay=0.)
-    _agent2 = Agent(_state_size, _action_size, gamma=0.90, lr_actor=0.0003, lr_critic=0.0004, tau=0.002,
-                    weight_decay=0.)
+    _agent1 = Agent(_state_size, _action_size,
+                    gamma=0.99, lr_actor=0.001, lr_critic=0.0004, tau=0.005, weight_decay=0.)
+    _agent2 = Agent(_state_size, _action_size,
+                    gamma=0.99, lr_actor=0.001, lr_critic=0.0004, tau=0.005, weight_decay=0.)
 
-    # _actor_local = ActorNetwork(_state_size, _action_size)
-    # _actor_target = ActorNetwork(_state_size, _action_size)
-    # _actor_optimizer = optim.Adam(_actor_local.parameters(), lr=0.0002)
-    # _agent1.actor_target = _actor_target
-    # _agent2.actor_target = _actor_target
-    # _agent1.actor_local = _actor_local
-    # _agent2.actor_local = _actor_local
+    _actor_local = ActorNetwork(_state_size, _action_size)
+    _actor_target = ActorNetwork(_state_size, _action_size)
+    _actor_optimizer = optim.Adam(_actor_local.parameters(), lr=0.0008)
+    _agent1.actor_target = _actor_target
+    _agent2.actor_target = _actor_target
+    _agent1.actor_local = _actor_local
+    _agent2.actor_local = _actor_local
 
-    # _agent1.actor_optimizer = _actor_optimizer
-    # _agent2.actor_optimizer = _actor_optimizer
+    _agent1.actor_optimizer = _actor_optimizer
+    _agent2.actor_optimizer = _actor_optimizer
 
-    # _agent1.hard_update(_actor_local, _actor_target)
-    # _agent2.hard_update(_actor_local, _actor_target)
+    _agent1.hard_update(_actor_local, _actor_target)
+    _agent2.hard_update(_actor_local, _actor_target)
 
-    _agent_duo = AgentDuo(_agent1, _agent2, buffer_size=1000000, batch_size=128)
+    _agent_duo = AgentDuo(_agent1, _agent2, buffer_size=1000000, batch_size=100)
 
     watch_only = False
     if watch_only:
         watch_agents_from_pth_file(_env, _brain_name, _agent_duo, './weights')
     else:
-        _scores = train_agents(_env, _brain_name, _agent_duo, n_episodes=3000)
+        _scores = train_agents(_env, _brain_name, _agent_duo, n_episodes=2500)
         plot_scores(scores=_scores, sma_window=100)
         watch_agents(_env, _brain_name, _agent_duo)
 
