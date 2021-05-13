@@ -20,7 +20,7 @@ def watch_agents_from_pth_file(env: UnityEnvironment, brain_name: str, agent_duo
     agent_duo.agent1.critic_local.eval()
     agent_duo.agent2.actor_local.eval()
     agent_duo.agent2.critic_local.eval()
-    watch_agents(env, brain_name, agent_duo)
+    watch_agents(env, brain_name, agent_duo, episodes=10)
 
 
 def train_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo, n_episodes: int):
@@ -52,8 +52,8 @@ def train_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo, n_
         agent_duo.agent1.reset_noise()
         agent_duo.agent2.reset_noise()
         while True:
-            action1 = agent_duo.agent1.act(states[0], add_noise=True)
-            action2 = agent_duo.agent2.act(states[1], add_noise=True)
+            action1 = agent_duo.agent1.act(states[0], add_noise=i_episode < 1000)
+            action2 = agent_duo.agent2.act(states[1], add_noise=i_episode < 1000)
             # send both actions to the environment
             env_info = env.step(action1, action2)[brain_name]
             # get the next state (for each agent)
@@ -82,37 +82,42 @@ def train_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo, n_
         if np.mean(scores_window) >= 0.5:
             print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode,
                                                                                          np.mean(scores_window)))
-            torch.save(agent_duo.agent1.actor_local.state_dict(), '/weights/checkpoint-actor1.pth')
-            torch.save(agent_duo.agent1.critic_local.state_dict(), '/weights/checkpoint-critic1.pth')
-            torch.save(agent_duo.agent2.actor_local.state_dict(), '/weights/checkpoint-actor2.pth')
-            torch.save(agent_duo.agent2.critic_local.state_dict(), '/weights/checkpoint-critic2.pth')
+            torch.save(agent_duo.agent1.actor_local.state_dict(), 'weights/checkpoint-actor1.pth')
+            torch.save(agent_duo.agent1.critic_local.state_dict(), 'weights/checkpoint-critic1.pth')
+            torch.save(agent_duo.agent2.actor_local.state_dict(), 'weights/checkpoint-actor2.pth')
+            torch.save(agent_duo.agent2.critic_local.state_dict(), 'weights/checkpoint-critic2.pth')
             break
+    torch.save(agent_duo.agent1.actor_local.state_dict(), 'weights/loosing-checkpoint-actor1.pth')
+    torch.save(agent_duo.agent1.critic_local.state_dict(), 'weights/loosing-checkpoint-critic1.pth')
+    torch.save(agent_duo.agent2.actor_local.state_dict(), 'weights/loosing-checkpoint-actor2.pth')
+    torch.save(agent_duo.agent2.critic_local.state_dict(), 'weights/loosing-checkpoint-critic2.pth')
 
     return total_scores
 
 
-def watch_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo):
+def watch_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo, episodes: int):
     """ Shows the agent simulation """
-    env_info = env.reset(train_mode=False)[brain_name]
-    # get the current state for each agent
-    states = env_info.vector_observations
-    # initialize the scores for the two agents
-    scores = np.zeros(2)
 
-    while True:
-        action1 = agent_duo.agent1.act(states[0])
-        action2 = agent_duo.agent2.act(states[1])
-        # send both actions to the environment
-        env_info = env.step(action1, action2)[brain_name]
-        # get the next state (for each agent)
-        next_states = env_info.vector_observations
-        rewards = env_info.rewards
-        dones = env_info.local_done
-        scores += rewards
-        states = next_states
-        if np.any(dones):
-            break
-    print(f"Scores: Agent 1: {scores[0]}, Agent 2: {scores[1]}")
+    for _ in range(episodes):
+        env_info = env.reset(train_mode=False)[brain_name]
+        # get the current state for each agent
+        states = env_info.vector_observations
+        # initialize the scores for the two agents
+        scores = np.zeros(2)
+        while True:
+            action1 = agent_duo.agent1.act(states[0])
+            action2 = agent_duo.agent2.act(states[1])
+            # send both actions to the environment
+            env_info = env.step(action1, action2)[brain_name]
+            # get the next state (for each agent)
+            next_states = env_info.vector_observations
+            rewards = env_info.rewards
+            dones = env_info.local_done
+            scores += rewards
+            states = next_states
+            if np.any(dones):
+                break
+        print(f"Scores: Agent 1: {scores[0]}, Agent 2: {scores[1]}")
 
 
 def plot_scores(scores: dict, sma_window: int = 50) -> None:
@@ -168,32 +173,18 @@ if __name__ == '__main__':
     _state_size: int = 24
 
     _agent1 = Agent(_state_size, _action_size,
-                    gamma=0.99, lr_actor=0.001, lr_critic=0.0004, tau=0.005, weight_decay=0.)
+                    gamma=0.99, lr_actor=0.00015, lr_critic=0.00021, tau=0.001, weight_decay=0.)
     _agent2 = Agent(_state_size, _action_size,
-                    gamma=0.99, lr_actor=0.001, lr_critic=0.0004, tau=0.005, weight_decay=0.)
+                    gamma=0.99, lr_actor=0.00015, lr_critic=0.00021, tau=0.001, weight_decay=0.)
 
-    _actor_local = ActorNetwork(_state_size, _action_size)
-    _actor_target = ActorNetwork(_state_size, _action_size)
-    _actor_optimizer = optim.Adam(_actor_local.parameters(), lr=0.0008)
-    _agent1.actor_target = _actor_target
-    _agent2.actor_target = _actor_target
-    _agent1.actor_local = _actor_local
-    _agent2.actor_local = _actor_local
-
-    _agent1.actor_optimizer = _actor_optimizer
-    _agent2.actor_optimizer = _actor_optimizer
-
-    _agent1.hard_update(_actor_local, _actor_target)
-    _agent2.hard_update(_actor_local, _actor_target)
-
-    _agent_duo = AgentDuo(_agent1, _agent2, buffer_size=1000000, batch_size=100)
+    _agent_duo = AgentDuo(_agent1, _agent2, buffer_size=1000000, batch_size=150)
 
     watch_only = False
     if watch_only:
         watch_agents_from_pth_file(_env, _brain_name, _agent_duo, './weights')
     else:
-        _scores = train_agents(_env, _brain_name, _agent_duo, n_episodes=2500)
+        _scores = train_agents(_env, _brain_name, _agent_duo, n_episodes=2700)
         plot_scores(scores=_scores, sma_window=100)
-        watch_agents(_env, _brain_name, _agent_duo)
+        watch_agents(_env, _brain_name, _agent_duo, episodes=10)
 
     _env.close()
