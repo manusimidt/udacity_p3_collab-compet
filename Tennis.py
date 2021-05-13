@@ -38,9 +38,11 @@ def train_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo, n_
         # initialize the scores for the two agents
         scores = np.zeros(2)
 
+        agent_duo.agent1.reset_noise()
+        agent_duo.agent2.reset_noise()
         while True:
-            action1 = agent_duo.agent1.act(states[0])
-            action2 = agent_duo.agent2.act(states[1])
+            action1 = agent_duo.agent1.act(states[0], add_noise=True)
+            action2 = agent_duo.agent2.act(states[1], add_noise=True)
             # send both actions to the environment
             env_info = env.step(action1, action2)[brain_name]
             # get the next state (for each agent)
@@ -61,9 +63,9 @@ def train_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo, n_
         # episode has ended
         scores_window.append(np.max(scores))
         total_scores["agent1"].append(scores[0])
-        total_scores["agent1"].append(scores[1])
+        total_scores["agent2"].append(scores[1])
 
-        if i_episode % 10 == 0:
+        if i_episode % 50 == 0:
             print(f"""Episode {i_episode}: Average Score: {np.mean(scores_window):.2f}""")
 
         if np.mean(scores_window) >= 0.5:
@@ -85,8 +87,8 @@ def watch_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo):
     scores = np.zeros(2)
 
     while True:
-        action1 = agent_duo.agent1.act(states)
-        action2 = agent_duo.agent2.act(states)
+        action1 = agent_duo.agent1.act(states[0])
+        action2 = agent_duo.agent2.act(states[1])
         # send both actions to the environment
         env_info = env.step(action1, action2)[brain_name]
         # get the next state (for each agent)
@@ -139,7 +141,8 @@ def plot_scores(scores: dict, sma_window: int = 50) -> None:
 if __name__ == '__main__':
 
     # initialize the environment
-    _env = UnityEnvironment(file_name="Tennis_Windows_x86_64/Tennis.exe")
+    # _env = UnityEnvironment(file_name="Tennis_Windows_x86_64/Tennis.exe")
+    _env = UnityEnvironment(file_name="Tennis_Linux/Tennis.x86_64")
     # get the default brain
     _brain_name = _env.brain_names[0]
     _brain = _env.brains[_brain_name]
@@ -148,8 +151,10 @@ if __name__ == '__main__':
     _action_size: int = 4
     _state_size: int = 24
 
-    _agent1 = Agent(_state_size, _action_size, gamma=0.99, lr_actor=0.0002, lr_critic=0.0003, tau=0.002, weight_decay=0.0001)
-    _agent2 = Agent(_state_size, _action_size, gamma=0.99, lr_actor=0.0002, lr_critic=0.0003, tau=0.002, weight_decay=0.0001)
+    _agent1 = Agent(_state_size, _action_size, gamma=0.99, lr_actor=0.0003, lr_critic=0.0004, tau=0.002,
+                    weight_decay=0.0001)
+    _agent2 = Agent(_state_size, _action_size, gamma=0.99, lr_actor=0.0003, lr_critic=0.0004, tau=0.002,
+                    weight_decay=0.0001)
 
     _agent_duo = AgentDuo(_agent1, _agent2, buffer_size=1000000, batch_size=128)
 
@@ -159,6 +164,6 @@ if __name__ == '__main__':
     else:
         _scores = train_agents(_env, _brain_name, _agent_duo, n_episodes=2000)
         watch_agents(_env, _brain_name, _agent_duo)
-        plot_scores(scores=_scores, sma_window=10)
+        plot_scores(scores=_scores, sma_window=100)
 
     _env.close()

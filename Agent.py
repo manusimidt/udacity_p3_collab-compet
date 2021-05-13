@@ -34,8 +34,7 @@ class Agent:
 
     def __init__(self, state_size: int, action_size: int,
                  gamma: float = 0.99, lr_actor: float = 0.001, lr_critic: float = 0.003,
-                 weight_decay: float = 0.0001, tau: float = 0.001,
-                 buffer_size: int = 100000, batch_size: int = 64):
+                 weight_decay: float = 0.0001, tau: float = 0.001, seed: int = 0):
         """
         :param state_size: how many states does the agent get as input (input size of neural networks)
         :param action_size: from how many actions can the agent choose
@@ -44,9 +43,8 @@ class Agent:
         :param lr_critic: learning rate of the critic network
         :param weight_decay:
         :param tau: soft update parameter
-        :param buffer_size: size of replay buffer
-        :param batch_size: size of learning batch (mini-batch)
         """
+        random.seed(seed)
         self.state_size = state_size
         self.action_size = action_size
 
@@ -66,6 +64,8 @@ class Agent:
         self.hard_update(self.actor_local, self.actor_target)
         self.hard_update(self.critic_local, self.critic_target)
 
+        self.noise = OUNoise(action_size)
+
     def act(self, state, add_noise: bool = False):
         """ Actor uses the policy to act given a state """
         state = torch.from_numpy(state).float().to(device)
@@ -73,17 +73,17 @@ class Agent:
         with torch.no_grad():
             action = self.actor_local.forward(state).cpu().data.numpy()
         self.actor_local.train()
-        # if add_noise:
-        #     action += self.noise.sample()
+        if add_noise:
+            action += self.noise.sample()
         return np.clip(action, -1, 1)
 
     def learn(self, experiences):
         states, actions, rewards, next_states, dones = experiences
 
         # region Update Critic
-        actions_next = self.actor_target.forward(next_states)
+        next_actions = self.actor_target.forward(next_states)
         q_expected = self.critic_local.forward(states, actions)
-        q_targets_next = self.critic_target.forward(next_states, actions_next)
+        q_targets_next = self.critic_target.forward(next_states, next_actions)
 
         q_targets = rewards + (self.gamma * q_targets_next * (1 - dones))
 
@@ -118,6 +118,9 @@ class Agent:
         """Copy the weights and biases from the local to the target network"""
         for target_param, param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(param.data)
+
+    def reset_noise(self):
+        self.noise.reset()
 
 
 class AgentDuo:
