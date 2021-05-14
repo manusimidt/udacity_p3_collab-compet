@@ -11,7 +11,7 @@ def hidden_init(layer) -> tuple:
 
 
 class ActorNetwork(nn.Module):
-    def __init__(self, input_size: int, output_size: int, fc1_size: int = 128, fc2_size: int = 128, seed: int = 0):
+    def __init__(self, input_size: int, output_size: int, fc1_size: int = 64, fc2_size: int = 64, seed: int = 0):
         super().__init__()
         torch.manual_seed(seed)
         self.fc1 = nn.Linear(in_features=input_size, out_features=fc1_size)
@@ -32,7 +32,7 @@ class ActorNetwork(nn.Module):
 
 class CriticNetwork(nn.Module):
 
-    def __init__(self, input_size: int, action_size: int, fc1_size: int = 128, fc2_size: int = 128, seed: int = 0):
+    def __init__(self, input_size: int, action_size: int, fc1_size: int = 100, fc2_size: int = 100, seed: int = 0):
         super().__init__()
         torch.manual_seed(seed)
         self.fc1 = nn.Linear(in_features=input_size, out_features=fc1_size)

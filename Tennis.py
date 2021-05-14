@@ -45,17 +45,18 @@ def train_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo, n_
     for i_episode in range(1, n_episodes + 1):
         # reset the environment
         env_info = env.reset(train_mode=True)[brain_name]
+        agent_duo.agent1.reset_noise()
+        agent_duo.agent2.reset_noise()
+
         states = env_info.vector_observations
         # initialize the scores for the two agents
         scores = np.zeros(2)
 
-        agent_duo.agent1.reset_noise()
-        agent_duo.agent2.reset_noise()
         while True:
             action1 = agent_duo.agent1.act(states[0], add_noise=i_episode < 1000)
             action2 = agent_duo.agent2.act(states[1], add_noise=i_episode < 1000)
             # send both actions to the environment
-            env_info = env.step(action1, action2)[brain_name]
+            env_info = env.step([action1, action2])[brain_name]
             # get the next state (for each agent)
             next_states = env_info.vector_observations
             rewards = env_info.rewards
@@ -169,7 +170,7 @@ if __name__ == '__main__':
     _brain = _env.brains[_brain_name]
 
     _agent_count: int = 2
-    _action_size: int = 4
+    _action_size: int = 2
     _state_size: int = 24
 
     _agent1 = Agent(_state_size, _action_size,
