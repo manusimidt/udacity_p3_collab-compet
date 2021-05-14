@@ -80,14 +80,14 @@ def train_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo, n_
         if i_episode % 100 == 0:
             print(f"""Episode {i_episode}: Average Score: {np.mean(scores_window):.2f}""")
 
-        # if np.mean(scores_window) >= 0.5:
-        #     print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode,
-        #                                                                                  np.mean(scores_window)))
-        #     torch.save(agent_duo.agent1.actor_local.state_dict(), 'weights/checkpoint-actor1.pth')
-        #     torch.save(agent_duo.agent1.critic_local.state_dict(), 'weights/checkpoint-critic1.pth')
-        #     torch.save(agent_duo.agent2.actor_local.state_dict(), 'weights/checkpoint-actor2.pth')
-        #     torch.save(agent_duo.agent2.critic_local.state_dict(), 'weights/checkpoint-critic2.pth')
-        #     break
+        if np.mean(scores_window) >= 0.5:
+            print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode,
+                                                                                         np.mean(scores_window)))
+            torch.save(agent_duo.agent1.actor_local.state_dict(), 'weights/checkpoint-actor1.pth')
+            torch.save(agent_duo.agent1.critic_local.state_dict(), 'weights/checkpoint-critic1.pth')
+            torch.save(agent_duo.agent2.actor_local.state_dict(), 'weights/checkpoint-actor2.pth')
+            torch.save(agent_duo.agent2.critic_local.state_dict(), 'weights/checkpoint-critic2.pth')
+            break
     torch.save(agent_duo.agent1.actor_local.state_dict(), 'weights/loosing-checkpoint-actor1.pth')
     torch.save(agent_duo.agent1.critic_local.state_dict(), 'weights/loosing-checkpoint-critic1.pth')
     torch.save(agent_duo.agent2.actor_local.state_dict(), 'weights/loosing-checkpoint-actor2.pth')
@@ -163,8 +163,8 @@ def plot_scores(scores: dict, sma_window: int = 50) -> None:
 if __name__ == '__main__':
 
     # initialize the environment
-    # _env = UnityEnvironment(file_name="Tennis_Windows_x86_64/Tennis.exe")
-    _env = UnityEnvironment(file_name="Tennis_Linux/Tennis.x86_64")
+    _env = UnityEnvironment(file_name="Tennis_Windows_x86_64/Tennis.exe")
+    # _env = UnityEnvironment(file_name="Tennis_Linux/Tennis.x86_64")
     # get the default brain
     _brain_name = _env.brain_names[0]
     _brain = _env.brains[_brain_name]
@@ -194,7 +194,7 @@ if __name__ == '__main__':
     # combine the two agents (this class will also store the shared ReplayBuffer)
     _agent_duo = AgentDuo(_agent1, _agent2, buffer_size=1000000, batch_size=150)
 
-    watch_only = False
+    watch_only = True
     if watch_only:
         watch_agents_from_pth_file(_env, _brain_name, _agent_duo, './weights')
     else:
