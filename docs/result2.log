@@ -1,0 +1,49 @@
+C:\Users\manus\.conda\envs\drlnd\python.exe E:/Programming/python/udacity_p3_collab-compet/Tennis.py
+INFO:unityagents:
+'Academy' started successfully!
+Unity Academy name: Academy
+        Number of Brains: 1
+        Number of External Brains : 1
+        Lesson number : 0
+        Reset Parameters :
+
+Unity brain name: TennisBrain
+        Number of Visual Observations (per agent): 0
+        Vector Observation space type: continuous
+        Vector Observation space size (per agent): 8
+        Number of stacked Vector Observation: 3
+        Vector Action space type: continuous
+        Vector Action space size (per agent): 2
+        Vector Action descriptions: ,
+ActorNetwork(
+  (fc1): Linear(in_features=24, out_features=64, bias=True)
+  (fc2): Linear(in_features=64, out_features=64, bias=True)
+  (fc3): Linear(in_features=64, out_features=2, bias=True)
+)
+CriticNetwork(
+  (fc1): Linear(in_features=24, out_features=100, bias=True)
+  (fc2): Linear(in_features=102, out_features=100, bias=True)
+  (fc3): Linear(in_features=100, out_features=1, bias=True)
+)
+ActorNetwork(
+  (fc1): Linear(in_features=24, out_features=64, bias=True)
+  (fc2): Linear(in_features=64, out_features=64, bias=True)
+  (fc3): Linear(in_features=64, out_features=2, bias=True)
+)
+CriticNetwork(
+  (fc1): Linear(in_features=24, out_features=100, bias=True)
+  (fc2): Linear(in_features=102, out_features=100, bias=True)
+  (fc3): Linear(in_features=100, out_features=1, bias=True)
+)
+Episode 100: Average Score: 0.00
+Episode 200: Average Score: 0.00
+Episode 300: Average Score: 0.00
+Episode 400: Average Score: 0.01
+Episode 500: Average Score: 0.02
+Episode 600: Average Score: 0.00
+Episode 700: Average Score: 0.04
+Episode 800: Average Score: 0.08
+Episode 900: Average Score: 0.13
+Episode 1000: Average Score: 0.14
+
+Environment solved in 1054 episodes!	Average Score: 0.51
