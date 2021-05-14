@@ -80,14 +80,14 @@ def train_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo, n_
         if i_episode % 100 == 0:
             print(f"""Episode {i_episode}: Average Score: {np.mean(scores_window):.2f}""")
 
-        if np.mean(scores_window) >= 0.5:
-            print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode,
-                                                                                         np.mean(scores_window)))
-            torch.save(agent_duo.agent1.actor_local.state_dict(), 'weights/checkpoint-actor1.pth')
-            torch.save(agent_duo.agent1.critic_local.state_dict(), 'weights/checkpoint-critic1.pth')
-            torch.save(agent_duo.agent2.actor_local.state_dict(), 'weights/checkpoint-actor2.pth')
-            torch.save(agent_duo.agent2.critic_local.state_dict(), 'weights/checkpoint-critic2.pth')
-            break
+        # if np.mean(scores_window) >= 0.5:
+        #     print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode,
+        #                                                                                  np.mean(scores_window)))
+        #     torch.save(agent_duo.agent1.actor_local.state_dict(), 'weights/checkpoint-actor1.pth')
+        #     torch.save(agent_duo.agent1.critic_local.state_dict(), 'weights/checkpoint-critic1.pth')
+        #     torch.save(agent_duo.agent2.actor_local.state_dict(), 'weights/checkpoint-actor2.pth')
+        #     torch.save(agent_duo.agent2.critic_local.state_dict(), 'weights/checkpoint-critic2.pth')
+        #     break
     torch.save(agent_duo.agent1.actor_local.state_dict(), 'weights/loosing-checkpoint-actor1.pth')
     torch.save(agent_duo.agent1.critic_local.state_dict(), 'weights/loosing-checkpoint-critic1.pth')
     torch.save(agent_duo.agent2.actor_local.state_dict(), 'weights/loosing-checkpoint-actor2.pth')
@@ -174,9 +174,9 @@ if __name__ == '__main__':
     _state_size: int = 24
 
     _agent1 = Agent(_state_size, _action_size,
-                    gamma=0.994, lr_actor=0.001, lr_critic=0.0005, tau=0.001, weight_decay=0.)
+                    gamma=0.994, lr_critic=0.0005, tau=0.001, weight_decay=0.)
     _agent2 = Agent(_state_size, _action_size,
-                    gamma=0.994, lr_actor=0.001, lr_critic=0.0005, tau=0.001, weight_decay=0.)
+                    gamma=0.994, lr_critic=0.0005, tau=0.001, weight_decay=0.)
 
     # set the same actor network for both agents
     _actor_local = ActorNetwork(_state_size, _action_size)
@@ -186,20 +186,19 @@ if __name__ == '__main__':
     _agent2.actor_target = _actor_target
     _agent1.actor_local = _actor_local
     _agent2.actor_local = _actor_local
-
     _agent1.actor_optimizer = _actor_optimizer
     _agent2.actor_optimizer = _actor_optimizer
-
     _agent1.hard_update(_actor_local, _actor_target)
     _agent2.hard_update(_actor_local, _actor_target)
 
+    # combine the two agents (this class will also store the shared ReplayBuffer)
     _agent_duo = AgentDuo(_agent1, _agent2, buffer_size=1000000, batch_size=150)
 
     watch_only = False
     if watch_only:
         watch_agents_from_pth_file(_env, _brain_name, _agent_duo, './weights')
     else:
-        _scores = train_agents(_env, _brain_name, _agent_duo, n_episodes=2700)
+        _scores = train_agents(_env, _brain_name, _agent_duo, n_episodes=2000)
         plot_scores(scores=_scores, sma_window=100)
         watch_agents(_env, _brain_name, _agent_duo, episodes=10)
 
