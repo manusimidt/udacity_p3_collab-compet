@@ -82,6 +82,7 @@ The environment is considered solved, when the average (over 100 episodes) of th
    ``` 
 4. Install the dependencies:
    ```bash 
+   cd python
    pip install .
    pip install pandas
    ```
