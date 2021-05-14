@@ -109,7 +109,7 @@ def watch_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo, ep
             action1 = agent_duo.agent1.act(states[0])
             action2 = agent_duo.agent2.act(states[1])
             # send both actions to the environment
-            env_info = env.step(action1, action2)[brain_name]
+            env_info = env.step([action1, action2])[brain_name]
             # get the next state (for each agent)
             next_states = env_info.vector_observations
             rewards = env_info.rewards
@@ -174,9 +174,24 @@ if __name__ == '__main__':
     _state_size: int = 24
 
     _agent1 = Agent(_state_size, _action_size,
-                    gamma=0.99, lr_actor=0.00015, lr_critic=0.00021, tau=0.001, weight_decay=0.)
+                    gamma=0.994, lr_actor=0.001, lr_critic=0.0005, tau=0.001, weight_decay=0.)
     _agent2 = Agent(_state_size, _action_size,
-                    gamma=0.99, lr_actor=0.00015, lr_critic=0.00021, tau=0.001, weight_decay=0.)
+                    gamma=0.994, lr_actor=0.001, lr_critic=0.0005, tau=0.001, weight_decay=0.)
+
+    # set the same actor network for both agents
+    _actor_local = ActorNetwork(_state_size, _action_size)
+    _actor_target = ActorNetwork(_state_size, _action_size)
+    _actor_optimizer = optim.Adam(_actor_local.parameters(), lr=0.001)
+    _agent1.actor_target = _actor_target
+    _agent2.actor_target = _actor_target
+    _agent1.actor_local = _actor_local
+    _agent2.actor_local = _actor_local
+
+    _agent1.actor_optimizer = _actor_optimizer
+    _agent2.actor_optimizer = _actor_optimizer
+
+    _agent1.hard_update(_actor_local, _actor_target)
+    _agent2.hard_update(_actor_local, _actor_target)
 
     _agent_duo = AgentDuo(_agent1, _agent2, buffer_size=1000000, batch_size=150)
 
