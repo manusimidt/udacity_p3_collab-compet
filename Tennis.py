@@ -53,8 +53,8 @@ def train_agents(env: UnityEnvironment, brain_name: str, agent_duo: AgentDuo, n_
         scores = np.zeros(2)
 
         while True:
-            action1 = agent_duo.agent1.act(states[0], add_noise=i_episode < 1000)
-            action2 = agent_duo.agent2.act(states[1], add_noise=i_episode < 1000)
+            action1 = agent_duo.agent1.act(states[0], add_noise=i_episode < 900)
+            action2 = agent_duo.agent2.act(states[1], add_noise=i_episode < 900)
             # send both actions to the environment
             env_info = env.step([action1, action2])[brain_name]
             # get the next state (for each agent)
